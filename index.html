@@ -14,7 +14,7 @@
   --bg:#0a0a12;--bg2:#12121e;--bg3:#1a1a2e;--surface:#16162a;
   --border:#2a2a44;--text:#e0dff0;--text2:#8888aa;--text3:#555577;
   --accent:#6c5ce7;--accent2:#a29bfe;--danger:#e74c6c;--star:#feca57;
-  --radius:14px;
+  --radius:14px;--content-font-size:16px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:'Zen Kaku Gothic New',sans-serif;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;-webkit-font-smoothing:antialiased}
@@ -104,7 +104,7 @@ body{font-family:'Zen Kaku Gothic New',sans-serif;background:var(--bg);color:var
 .form-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px}
 .form-group input,.form-group textarea,.form-group select{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:inherit;outline:none;resize:vertical}
 .form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--accent)}
-.form-group textarea{min-height:180px;line-height:1.7}
+.form-group textarea{min-height:180px;line-height:1.7;font-size:var(--content-font-size)}
 .form-actions{display:flex;gap:8px;margin-top:14px}
 .btn{flex:1;padding:12px;border-radius:11px;border:none;font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;transition:opacity .15s}
 .btn:active{opacity:.8}
@@ -119,7 +119,7 @@ body{font-family:'Zen Kaku Gothic New',sans-serif;background:var(--bg);color:var
 
 .view-wrap{position:relative;flex:1;min-height:0;overflow:hidden;margin:0}
 .view-wp{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0;pointer-events:none}
-.view-content{position:relative;z-index:1;white-space:pre-wrap;word-break:break-word;font-size:16px;line-height:2;color:var(--text);height:100%;overflow-y:auto;padding:18px 20px 28px;background:rgba(10,10,18,.45)}
+.view-content{position:relative;z-index:1;white-space:pre-wrap;word-break:break-word;font-size:var(--content-font-size);line-height:2;color:var(--text);height:100%;overflow-y:auto;padding:18px 20px 28px;background:rgba(10,10,18,.45)}
 .view-actions{display:flex;gap:6px;flex-wrap:wrap}
 #viewModal{align-items:stretch}
 #viewModal .modal{width:100%;max-width:none;max-height:none;height:100dvh;border-radius:0;padding:0;background:var(--bg);display:flex;flex-direction:column}
@@ -260,6 +260,17 @@ body{font-family:'Zen Kaku Gothic New',sans-serif;background:var(--bg);color:var
       </div>
     </div>
     <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:14px;margin-bottom:8px">文字サイズ</div>
+      <div class="slider-row" style="margin-bottom:6px">
+        <label>本文</label>
+        <input type="range" id="fontSizeRange" min="14" max="26" value="16" oninput="previewFontSize(this.value)">
+        <span class="val" id="fontSizeVal">16</span>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-cancel btn-sm" onclick="resetFontSize()">標準</button>
+      </div>
+    </div>
+    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="font-size:14px;margin-bottom:8px">キャラ色カスタマイズ</div>
       <div id="charaColorList"></div>
     </div>
@@ -337,6 +348,8 @@ const getCharaColors=()=>S('cc')||{};
 const setCharaColors=c=>SS('cc',c);
 const getCharaWp=id=>S('wp_'+id)||{};
 const setCharaWp=(id,v)=>SS('wp_'+id,v);
+const getFontSize=()=>S('fontSize')||16;
+const setFontSize=v=>SS('fontSize',v);
 const charaColor=id=>{const c=getCharaColors();return c[id]||(CHARAS.find(x=>x.id===id)||{}).color||'#888'};
 
 // PATTERN LOCK
@@ -636,7 +649,25 @@ function saveCharaWp(){const img=document.getElementById('cwpPreview').dataset.v
 function clearCharaWp(){setCharaWp(wpTarget,{});clrPv();applyWp(wpTarget);closeModal('charaWpModal');toast('壁紙をクリアしました')}
 function cmpImg(f,mw,q){return new Promise(r=>{const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');let w=im.width,h=im.height;if(w>mw){h=h*(mw/w);w=mw}c.width=w;c.height=h;c.getContext('2d').drawImage(im,0,0,w,h);r(c.toDataURL('image/jpeg',q))};im.src=rd.result};rd.readAsDataURL(f)})}
 
-function openSettings(){renderCCL();openModal('settingsModal')}
+
+function applyFontSize(v){
+  const size=Math.max(14,Math.min(26,parseInt(v,10)||16));
+  document.documentElement.style.setProperty('--content-font-size', size+'px');
+  const range=document.getElementById('fontSizeRange');
+  const val=document.getElementById('fontSizeVal');
+  if(range) range.value=size;
+  if(val) val.textContent=size;
+}
+function previewFontSize(v){
+  applyFontSize(v);
+  setFontSize(parseInt(v,10)||16);
+}
+function resetFontSize(){
+  previewFontSize(16);
+  toast('文字サイズを標準に戻しました');
+}
+
+function openSettings(){renderCCL();applyFontSize(getFontSize());openModal('settingsModal')}
 function changePin(){const v=document.getElementById('newPin').value;if(!/^\d{4}$/.test(v)){toast('4桁の数字を入力してね');return}setPin(v);document.getElementById('newPin').value='';toast('PINを変更しました')}
 function renderCCL(){
   document.getElementById('charaColorList').innerHTML=CHARAS.map(c=>{
@@ -672,7 +703,7 @@ async function startPatternChange(){
 }
 
 function exportData(){
-  const data={logs:getLogs(),cc:getCharaColors(),pattern:getPattern(),pin:getPin()};
+  const data={logs:getLogs(),cc:getCharaColors(),pattern:getPattern(),pin:getPin(),fontSize:getFontSize()};
   CHARAS.forEach(c=>{const w=getCharaWp(c.id);if(w.img)data['wp_'+c.id]=w});
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='secret-log-backup.json';a.click();toast('エクスポートしました');
@@ -681,7 +712,7 @@ function importData(){document.getElementById('importFile').click()}
 function handleImport(e){
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
-  r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.logs)setLogs(d.logs);if(d.cc)setCharaColors(d.cc);if(d.pattern)setPattern(d.pattern);if(d.pin)setPin(d.pin);CHARAS.forEach(c=>{if(d['wp_'+c.id])setCharaWp(c.id,d['wp_'+c.id])});renderAll();toast('インポートしました')}catch{toast('読み込めませんでした')}};
+  r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.logs)setLogs(d.logs);if(d.cc)setCharaColors(d.cc);if(d.pattern)setPattern(d.pattern);if(d.pin)setPin(d.pin);if(d.fontSize)setFontSize(d.fontSize);CHARAS.forEach(c=>{if(d['wp_'+c.id])setCharaWp(c.id,d['wp_'+c.id])});applyFontSize(getFontSize());renderAll();toast('インポートしました')}catch{toast('読み込めませんでした')}};
   r.readAsText(f);e.target.value='';
 }
 
@@ -690,7 +721,7 @@ function closeModal(id){document.getElementById(id).classList.remove('show')}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id)})});
 function renderAll(){renderChips();renderList();renderCharaGrid();if(curChara)renderCLL(curChara)}
-document.addEventListener('DOMContentLoaded',()=>{lockFlow()});
+document.addEventListener('DOMContentLoaded',()=>{applyFontSize(getFontSize());lockFlow()});
 </script>
 </body>
 </html>
